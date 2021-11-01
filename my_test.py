@@ -30,6 +30,7 @@ parser = argparse.ArgumentParser(description='Testing script')
 parser.add_argument('--test_dataset', help='Dataset .txt file')
 parser.add_argument('--pretrained_model', help='resume net for retraining')
 parser.add_argument('--plot_folder', help='Location to plot results on images')
+parser.add_argument('--image_folder', help='Location to the image folder')
 
 parser.add_argument('--world_size', default=1, type=int, help='number of distributed processes')
 
@@ -112,7 +113,7 @@ def test():
 
     model = model.eval()
 
-    video_frame_path = "/content/val_data/57583_000082/57583_000082_Sideline/img"
+    video_frame_path = args.image_folder
     frame_name_list = os.listdir(video_frame_path)
     frame_name_list.sort()
     detection_list = []
