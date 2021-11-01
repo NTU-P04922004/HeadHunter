@@ -15,12 +15,12 @@ from head_detection.data import (HeadDataset, cfg_mnet, cfg_res50,
                                  combined_anchors, compute_mean_std,
                                  headhunt_anchors, sh_anchors)
 from head_detection.models.head_detect import customRCNN
-from head_detection.utils import restore_network
+from head_detection.utils import my_load, restore_network
 from head_detection.vision.engine import evaluate, train_one_epoch
 from head_detection.vision.utils import collate_fn, init_distributed_mode
 
-cv2.setNumThreads(0)
-cv2.ocl.setUseOpenCL(False)
+# cv2.setNumThreads(0)
+# cv2.ocl.setUseOpenCL(False)
 
 
 parser = argparse.ArgumentParser(description='Training of Head detector')
@@ -32,6 +32,8 @@ parser.add_argument('--world_size', default=1,
                     type=int, help='number of distributed processes')
 parser.add_argument('--num_workers', default=4, type=int,
                     help='Number of workers used in dataloading')
+parser.add_argument('--resume', action='store_true',
+                    help='Resume training')
 args = parser.parse_args()
 print(args)
 # Get variables from config file
@@ -121,11 +123,21 @@ def train():
     scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer,
                                                     milestones=TRAIN_CFG['milestones'],
                                                     gamma=HYP_CFG['gamma'])
+    start_epoch = 0
     # Restore from checkpoint
     pt_model = TRAIN_CFG['pretrained_model']
     if pt_model:
-        model_without_ddp = restore_network(model_without_ddp, pt_model,
-                                            only_backbone=TRAIN_CFG['only_backbone'])
+        if args.resume:
+            checkpoint = torch.load(pt_model)
+            model_without_ddp = my_load(model_without_ddp, checkpoint['model_state_dict'],
+                                                only_backbone=TRAIN_CFG['only_backbone'])
+
+            optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+            scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
+            start_epoch = checkpoint['epoch'] + 1
+        else:
+            model_without_ddp = restore_network(model_without_ddp, pt_model,
+                                                only_backbone=TRAIN_CFG['only_backbone'])
     
     # Create training and vaid dataset
     dataset_param = {'mean': dataset_mean, 'std':dataset_std,
@@ -157,7 +169,8 @@ def train():
                                                   num_workers=args.num_workers,
                                                   collate_fn=collate_fn)
     # Fastforward the LR decayer
-    start_epoch = TRAIN_CFG['start_epoch']
+    if start_epoch == 0:
+        start_epoch = TRAIN_CFG['start_epoch']
     max_epoch = TRAIN_CFG['max_epoch']
     for _ in range(0, -1):
         scheduler.step()
@@ -177,8 +190,16 @@ def train():
         scheduler.step()
         if torch.distributed.get_rank() == 0:
             print("Saving model")
-            torch.save(model.state_dict(), osp.join(save_dir,
-                       TRAIN_CFG['exp_name'] + '_epoch_' + str(epoch) + '.pth'))
+            # torch.save(model.state_dict(), osp.join(save_dir,
+            #            TRAIN_CFG['exp_name'] + '_epoch_' + str(epoch) + '.pth'))
+
+            out_path = osp.join(save_dir, TRAIN_CFG['exp_name'] + '_epoch_' + str(epoch) + '.pth')
+            torch.save({
+                'model_state_dict': model.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict(),
+                'scheduler_state_dict': scheduler.state_dict(),
+                'epoch': epoch,
+            }, out_path)
 
 if __name__ == '__main__':
     train()

@@ -14,10 +14,12 @@ from albumentations import BboxParams, Compose, HorizontalFlip
 from albumentations.pytorch import ToTensor
 from torchvision.ops.boxes import clip_boxes_to_image
 
-try:
-    from scipy.misc import imread
-except ImportError:
-    from scipy.misc.pilutil import imread
+# try:
+#     from scipy.misc import imread
+# except ImportError:
+#     from scipy.misc.pilutil import imread
+
+from PIL import Image
 
 class HeadDataset(data.Dataset):
     """
@@ -176,7 +178,8 @@ class HeadDataset(data.Dataset):
         https://discuss.pytorch.org/t/torchvision-faster-rcnn-empty-training-images/46935
         """
 
-        img = imread(osp.join(self.base_path, self.imgs_path[index]))
+        img = Image.open(osp.join(self.base_path, self.imgs_path[index]))
+        img = np.array(img)
         labels = self.bboxes[index]
         annotations = np.zeros((0, 4))
 

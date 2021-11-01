@@ -354,11 +354,11 @@ class CustomRoIHead(RoIHeads):
                     )
                 )
 
-        if self.has_mask:
-            raise ValueError("Masks not supported")
+        # if self.has_mask:
+        #     raise ValueError("Masks not supported")
 
-        if self.has_keypoint:
-            raise ValueError("Keypoints not supported")
+        # if self.has_keypoint:
+        #     raise ValueError("Keypoints not supported")
 
         return result, losses
 
@@ -455,7 +455,9 @@ class CustomRPN(RegionProposalNetwork):
             keep = box_ops.batched_nms(boxes, scores, lvl, self.nms_thresh)
             # keep = soft_nms_pytorch(boxes, scores).type(torch.int64)
             # keep only topk scoring predictions
-            keep = keep[:self.post_nms_top_n]
+            post_nms_top_n = self.post_nms_top_n()
+            post_nms_top_n = int(post_nms_top_n)
+            keep = keep[:post_nms_top_n]
             boxes, scores = boxes[keep], scores[keep]
             final_boxes.append(boxes)
             final_scores.append(scores)

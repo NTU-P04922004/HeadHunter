@@ -8,7 +8,7 @@ import cv2
 import numpy as np
 import torch
 import torch.utils.data as data
-from scipy.misc import imsave
+# from scipy.misc import imsave
 from torchvision import transforms
 from tqdm import tqdm
 from albumentations.pytorch import ToTensor
@@ -43,6 +43,31 @@ def get_state_dict(net, pt_model, only_backbone=False):
                 name = 'backbone.' + name
         new_state_dict[name] = v
     return new_state_dict
+
+
+def my_load(net, state_dict, only_backbone=False):
+    """
+    Restore weight. Full or partial depending on `only_backbone`.
+    """
+    strict = False if only_backbone else True
+    # create new OrderedDict that does not contain `module.`
+    new_state_dict = OrderedDict()
+    for k, v in state_dict.items():
+        head = k[:7]
+        if head == 'module.':
+            name = k[7:] # remove `module.`
+        else:
+            name = k
+        # Remove Head module while restoring network
+        if only_backbone:
+            if 'Head' in name.split('.')[0]:
+                continue
+            else:
+                name = 'backbone.' + name
+        new_state_dict[name] = v
+    net.load_state_dict(new_state_dict, strict=strict)
+    print('Loaded the entire model in %r mode' %strict)
+    return net
 
 
 def restore_network(net, pt_model, only_backbone=False):
@@ -88,7 +113,7 @@ def visualize(base_path, test_dataset, plot_dir, batch_size=4, ):
         gt_boxes = [gt['boxes'].numpy().astype(np.float64) for gt in targets]
         for np_im, gt_box in zip(np_images, gt_boxes):
             plot_images = plot_ims(np_im, [], gt_box)
-            imsave(osp.join(plot_dir, str(ind) + '.jpg'), plot_images)
+            # imsave(osp.join(plot_dir, str(ind) + '.jpg'), plot_images)
 
 
 def plot_ims(img, pred_box, gt_box=None, text=True):
