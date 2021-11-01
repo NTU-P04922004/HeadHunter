@@ -15,7 +15,7 @@ from head_detection.data import (cfg_mnet, cfg_res50, cfg_res50_4fpn,
                                  cfg_res152, ch_anchors, combined_anchors,
                                  headhunt_anchors, sh_anchors)
 from head_detection.models.head_detect import customRCNN
-from head_detection.utils import get_state_dict, plot_ims, to_torch
+from head_detection.utils import my_load, get_state_dict, plot_ims, to_torch
 from head_detection.vision.utils import init_distributed_mode
 
 # try:
@@ -35,8 +35,8 @@ parser.add_argument('--world_size', default=1, type=int, help='number of distrib
 
 parser.add_argument('--benchmark', default='Combined', help='Benchmark for training/validation')
 parser.add_argument('--batch_size', default=1, type=int, help='Batch size')
-parser.add_argument('--min_size', default=800, type=int, help='Optionally plot first N images of test')
-parser.add_argument('--max_size', default=1400, type=int, help='Optionally plot first N images of test')
+parser.add_argument('--min_size', default=720, type=int, help='Optionally plot first N images of test')
+parser.add_argument('--max_size', default=1280, type=int, help='Optionally plot first N images of test')
 
 parser.add_argument('--ext', default='.jpg', type=str, help='Image file extensions')
 parser.add_argument('--outfile', help='Location to save results in mot format')
@@ -104,11 +104,15 @@ def test():
     # for k, v in model.state_dict().items():
         # print(k) 
 
-    new_state_dict = get_state_dict(model, args.pretrained_model)
-    model.load_state_dict(new_state_dict, strict=True)
+    # new_state_dict = get_state_dict(model, args.pretrained_model)
+    # model.load_state_dict(new_state_dict, strict=True)
+    checkpoint = torch.load(args.pretrained_model)
+    model = my_load(model, checkpoint['model_state_dict'], 
+        only_backbone=False)
+
     model = model.eval()
 
-    video_frame_path = "/content/video_frames/train/57583_000082_Endzone/img"
+    video_frame_path = "/content/val_data/57583_000082/57583_000082_Sideline/img"
     frame_name_list = os.listdir(video_frame_path)
     frame_name_list.sort()
     detection_list = []
@@ -126,11 +130,12 @@ def test():
         # plot_img = plot_ims(np_img.transpose(2,0,1), out_dict['boxes'].cpu().numpy()) 
 
         filename, _ = os.path.splitext(name)
+        frame_idx = filename.split("_")[-1]
         pred_boxes = out_dict['boxes'].cpu().numpy()
         scores = out_dict['scores'].cpu().numpy()
         for b_id, (box, score) in enumerate(zip(pred_boxes, scores)):
             (startX, startY, endX, endY) = box
-            detection_list.append((int(filename), startX, startY, endX - startX, endY - startY, score))
+            detection_list.append((int(frame_idx), startX, startY, endX - startX, endY - startY, score))
             # print(b_id, startX, startY, endX, endY, score)
         
         # out_path = os.path.join("/content", os.path.basename(img_path))
