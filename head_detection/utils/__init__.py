@@ -76,6 +76,8 @@ def restore_network(net, pt_model, only_backbone=False):
     """
     strict = False if only_backbone else True
     state_dict = torch.load(pt_model)
+    if 'model_state_dict' in state_dict:
+        state_dict = state_dict['model_state_dict']
     # create new OrderedDict that does not contain `module.`
     new_state_dict = OrderedDict()
     for k, v in state_dict.items():
