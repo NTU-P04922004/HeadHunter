@@ -153,11 +153,11 @@ def evaluate(model, data_loader, out_path=None, benchmark=None):
         model_time = time.time() - model_time
         evaluator_time = time.time()
         # Pred lists
-        pred_boxes = [p['boxes'].numpy() for p in outputs]
-        pred_scores = [p['scores'].numpy() for p in outputs]
+        pred_boxes = [p['boxes'].numpy().astype(np.float64) for p in outputs]
+        pred_scores = [p['scores'].numpy().astype(np.float64) for p in outputs]
 
         # GT List
-        gt_boxes = [gt['boxes'].numpy()for gt in targets]
+        gt_boxes = [gt['boxes'].numpy().astype(np.float64) for gt in targets]
 
         # ignore variables are used in our benchmark and CHuman Benchmark
         ignore_ar = [gt['ignore'] for gt in targets]
