@@ -154,7 +154,7 @@ def test():
     eval_stats = defaultdict(list)
     eval_verbose = defaultdict(dict)
     
-    for data_loader in tqdm(data_loaders):
+    for data_loader in tqdm(data_loaders, ascii=True, position=0):
         result_dict = evaluate(model, data_loader)
         print(result_dict)
         logging.info('Eval stats are {0}'.format(result_dict))

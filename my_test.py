@@ -117,7 +117,7 @@ def test():
     frame_name_list = os.listdir(video_frame_path)
     frame_name_list.sort()
     detection_list = []
-    for name in tqdm(frame_name_list):
+    for name in tqdm(frame_name_list, ascii=True, position=0):
         img_path = os.path.join(video_frame_path, name)
         img = Image.open(img_path)
         np_img = np.array(img)
